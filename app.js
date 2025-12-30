@@ -1,88 +1,69 @@
-document.body.insertAdjacentHTML(
-  "afterbegin",
-  "<div style='background:red;color:white;padding:10px'>APP.JS RUNNING</div>"
-);
-document.addEventListener("DOMContentLoaded", async () => {
-  const { wireAuthUI } = await import("./auth.js");
-  const {
-    initFirebase,
-    loadAll,
-    flushQueue,
-    getQueueSize,
-  } = await import("./db.js");
-  const { createUI } = await import("./ui.js");
+// auth.js - Authentication Logic
+import { clampStr } from "./utils.js";
+import {
+  signIn,
+  signUp,
+  resetPassword,
+  signOutUser,
+  onUserChanged,
+} from "./db.js";
 
-  initFirebase();
+export function wireAuthUI({ onSignedIn, onSignedOut, toast }) {
+  const elEmail = document.getElementById("authEmail");
+  const elPass = document.getElementById("authPassword");
 
-  const authGate = document.getElementById("authGate");
-  const appViews = document.getElementById("appViews");
-
-  const syncDot = document.getElementById("syncDot");
-  const syncText = document.getElementById("syncText");
-  const btnSettings = document.getElementById("btnSettings");
+  const btnIn = document.getElementById("btnSignIn");
+  const btnUp = document.getElementById("btnSignUp");
+  const btnForgot = document.getElementById("btnForgot");
   const btnSignOut = document.getElementById("btnSignOut");
 
-  const modalBackdrop = document.getElementById("modalBackdrop");
-  const modalClose = document.getElementById("modalClose");
-  const modalTitle = document.getElementById("modalTitle");
-  const modalBody = document.getElementById("modalBody");
-  const modalFooter = document.getElementById("modalFooter");
-
-  const toastEl = document.getElementById("toast");
-  const toastText = document.getElementById("toastText");
-
-  const state = {
-    user: null,
-    route: "dashboard",
-    data: { accounts: [], journalHeaders: [], journalLines: [] },
-    filters: { start: null, end: null },
-    reload: async () => {},
-  };
-
-  function setSync(status, msg) {
-    const colors = {
-      good: "var(--good)",
-      warn: "var(--warn)",
-      bad: "var(--bad)",
-    };
-    syncDot.style.background = colors[status] || colors.warn;
-    syncText.textContent = msg;
-  }
-
-  function toast(msg, kind = "good") {
-    toastText.textContent = msg;
-    toastEl.style.display = "block";
-    clearTimeout(toastEl._t);
-    toastEl._t = setTimeout(() => (toastEl.style.display = "none"), 2200);
-  }
-
-  function showSignedIn() {
-    authGate.style.display = "none";
-    appViews.style.display = "block";
-    btnSignOut.style.display = "inline-flex";
-  }
-
-  function showSignedOut() {
-    authGate.style.display = "block";
-    appViews.style.display = "none";
-    btnSignOut.style.display = "none";
-    setSync("warn", "Not signed in");
-  }
-
-  wireAuthUI({
-    toast,
-    onSignedIn: async (user) => {
-      state.user = user;
-      showSignedIn();
-
-      await loadAll(user.uid);
-
-      toast("Signed in and ready.");
-    },
-    onSignedOut: () => {
-      state.user = null;
-      showSignedOut();
-      toast("Signed out.", "warn");
-    },
+  btnSignOut.addEventListener("click", async () => {
+    try {
+      await signOutUser();
+    } catch (e) {
+      toast(`Sign out failed: ${e?.message || e}`, "bad");
+    }
   });
-});
+
+  btnIn.addEventListener("click", async () => {
+    const email = clampStr(elEmail.value || "", 120);
+    const pass = clampStr(elPass.value || "", 200);
+    if (!email || !pass) return toast("Email and password required", "bad");
+    
+    try {
+      const user = await signIn(email, pass);
+      toast(`Signed in: ${user.email}`);
+    } catch (e) {
+      toast(`Sign in failed: ${e?.message}`, "bad");
+    }
+  });
+
+  btnUp.addEventListener("click", async () => {
+    const email = clampStr(elEmail.value || "", 120);
+    const pass = clampStr(elPass.value || "", 200);
+    if (pass.length < 6) return toast("Password must be 6+ chars", "bad");
+    
+    try {
+      const user = await signUp(email, pass);
+      toast(`Account created: ${user.email}`);
+    } catch (e) {
+      toast(`Sign up failed: ${e?.message}`, "bad");
+    }
+  });
+
+  btnForgot.addEventListener("click", async () => {
+    const email = clampStr(elEmail.value || "", 120);
+    if (!email) return toast("Enter your email first.", "warn");
+    try {
+      await resetPassword(email);
+      toast("Password reset email sent.");
+    } catch (e) {
+      toast(`Reset failed: ${e?.message}`, "bad");
+    }
+  });
+
+  onUserChanged((user) => {
+    if (user) onSignedIn(user);
+    else onSignedOut();
+  });
+}
