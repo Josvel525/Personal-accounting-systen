@@ -1,6 +1,3 @@
-/**
- * utils.js
- */
 export const fmt = {
   money(n){
     const x = Number(n || 0);
