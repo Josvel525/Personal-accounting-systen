@@ -13,6 +13,11 @@ export const fmt = {
   }
 };
 
+// This was the missing function causing the crash!
+export function todayISO() {
+  return new Date().toISOString().split('T')[0];
+}
+
 export function el(html){
   const t = document.createElement("template");
   t.innerHTML = html.trim();
@@ -45,20 +50,4 @@ export function groupBy(arr, keyFn){
 export function clampStr(s, max=220){
   const t = String(s ?? "").trim();
   return t.length > max ? t.slice(0, max) : t;
-}
-
-export function todayISO(){
-  return fmt.dateISO(new Date());
-}
-
-export function byDateAsc(a,b){
-  return String(a.date).localeCompare(String(b.date));
-}
-
-export function debounce(fn, ms=250){
-  let t=null;
-  return (...args)=>{
-    clearTimeout(t);
-    t=setTimeout(()=>fn(...args), ms);
-  };
 }
