@@ -1,6 +1,3 @@
-/**
- * app.js
- */
 document.addEventListener("DOMContentLoaded", async () => {
   const { wireAuthUI } = await import("./auth.js");
   const { initFirebase, loadAll } = await import("./db.js");
@@ -22,7 +19,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (state.user) {
         const result = await loadAll(state.user.uid);
         state.data = result.data;
-        createUI(state, { toast }); // Refresh UI with new data
+        createUI(state, { toast }); 
       }
     },
   };
@@ -43,15 +40,20 @@ document.addEventListener("DOMContentLoaded", async () => {
       appViews.style.display = "block";
       btnSignOut.style.display = "inline-flex";
       
-      await state.reload(); // Load data
-      createUI(state, { toast }); // Initial Render
+      // 1. Load data from Firestore
+      await state.reload();
 
-      // Wire Sidebar Navigation
+      // 2. Render the actual UI (Dashboard)
+      createUI(state, { toast });
+
+      // 3. FIX: Attach listeners to sidebar buttons
       document.querySelectorAll(".navItem").forEach(btn => {
         btn.onclick = () => {
           state.route = btn.dataset.route;
+          // Update visual active state
           document.querySelectorAll(".navItem").forEach(b => b.classList.remove("active"));
           btn.classList.add("active");
+          // Re-render selected view
           createUI(state, { toast });
         };
       });
