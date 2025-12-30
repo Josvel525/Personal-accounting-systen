@@ -40,7 +40,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyCprWuMnOFI91MaWg5H63Ik3_MPWmi1JPM",
   authDomain: "personal-accounting-syst-2188a.firebaseapp.com",
   projectId: "personal-accounting-syst-2188a",
-  storageBucket: "personal-accounting-syst-2188a.appspot.com", // Fixed
+  storageBucket: "personal-accounting-syst-2188a.appspot.com", // Fixed from .firebasestorage.app
   messagingSenderId: "517983866974",
   appId: "1:517983866974:web:2f108129c717915531e4cf"
 };
