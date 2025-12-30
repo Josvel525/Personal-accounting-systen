@@ -1,15 +1,16 @@
+/**
+ * app.js
+ */
 document.addEventListener("DOMContentLoaded", async () => {
-  // 1. Import Auth first so buttons work immediately
   const { wireAuthUI } = await import("./auth.js");
   const { initFirebase, loadAll } = await import("./db.js");
+  const { createUI } = await import("./ui.js");
 
   initFirebase();
 
   const authGate = document.getElementById("authGate");
   const appViews = document.getElementById("appViews");
   const btnSignOut = document.getElementById("btnSignOut");
-  const syncDot = document.getElementById("syncDot");
-  const syncText = document.getElementById("syncText");
   const toastEl = document.getElementById("toast");
   const toastText = document.getElementById("toastText");
 
@@ -19,8 +20,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     data: { accounts: [], journalHeaders: [], journalLines: [] },
     reload: async () => {
       if (state.user) {
-        const res = await loadAll(state.user.uid);
-        state.data = res.data;
+        const result = await loadAll(state.user.uid);
+        state.data = result.data;
+        createUI(state, { toast }); // Refresh UI with new data
       }
     },
   };
@@ -33,7 +35,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     toastEl._t = setTimeout(() => (toastEl.style.display = "none"), 3000);
   }
 
-  // 2. Wire the Auth UI (Sign In / Sign Up buttons)
   wireAuthUI({
     toast,
     onSignedIn: async (user) => {
@@ -41,21 +42,25 @@ document.addEventListener("DOMContentLoaded", async () => {
       authGate.style.display = "none";
       appViews.style.display = "block";
       btnSignOut.style.display = "inline-flex";
-      syncDot.style.background = "#2ecc71";
-      syncText.textContent = "Online";
       
-      await state.reload();
-      // Load UI only AFTER we are logged in
-      const { createUI } = await import("./ui.js");
-      createUI(state, { toast });
+      await state.reload(); // Load data
+      createUI(state, { toast }); // Initial Render
+
+      // Wire Sidebar Navigation
+      document.querySelectorAll(".navItem").forEach(btn => {
+        btn.onclick = () => {
+          state.route = btn.dataset.route;
+          document.querySelectorAll(".navItem").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          createUI(state, { toast });
+        };
+      });
     },
     onSignedOut: () => {
       state.user = null;
       authGate.style.display = "block";
       appViews.style.display = "none";
       btnSignOut.style.display = "none";
-      syncDot.style.background = "#f1c40f";
-      syncText.textContent = "Not signed in";
-    }
+    },
   });
 });
